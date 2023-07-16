@@ -1,36 +1,27 @@
 {
   description = "OpenAI Whisper";
 
-  inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/release-23.05";
-    mach-nix.url = "github:davhau/mach-nix";
-  };
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/release-23.05";
 
-  outputs = {
-    nixpkgs,
-    mach-nix,
-    ...
-  }: let
-    pythonVersion = "python39";
+  outputs = {nixpkgs, ...}: let
     system = "aarch64-darwin";
     pkgs = nixpkgs.legacyPackages.${system};
-    mach = mach-nix.lib.${system};
-
-    pythonEnv = mach.mkPython {
-      python = pythonVersion;
-      requirements = builtins.readFile ./requirements.txt;
-    };
   in {
-    devShells.${system}.default = pkgs.mkShellNoCC {
-      packages = [
-        pythonEnv
-        pkgs.ffmpeg
-        pkgs.rustc
-      ];
+    packages.${system}.default = with pkgs.python310Packages;
+      buildPythonPackage {
+        name = "whisper";
+        version = "20230314";
+        format = "setuptools";
+        src = ./.;
 
-      shellHook = ''
-        export PYTHONPATH="${pythonEnv}/bin/python"
-      '';
-    };
+        propagatedBuildInputs = [
+          numba
+          numpy
+          torch
+          tqdm
+          more-itertools
+          tiktoken
+        ];
+      };
   };
 }
